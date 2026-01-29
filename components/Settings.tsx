@@ -1,6 +1,5 @@
-
 import React, { useRef, useState } from 'react';
-import { Database, Upload, Download, CheckCircle, RefreshCw, Wifi, CloudLightning, Zap, FileCode, Clock } from 'lucide-react';
+import { Database, Upload, Download, CheckCircle, RefreshCw, Wifi, CloudLightning, Zap, FileCode, Clock, ExternalLink, Key } from 'lucide-react';
 import { Fund, HistoryPoint } from '../types.ts';
 import { storageService } from '../services/storageService.ts';
 import { geminiService } from '../services/geminiService.ts';
@@ -14,6 +13,13 @@ interface SettingsProps {
   onImportData: (data: { funds: Fund[], portfolioName: string, lastSyncDate?: string }) => void;
   onFundsUpdate: (funds: Fund[]) => void;
   onSyncComplete?: (funds: Fund[]) => void;
+}
+
+// Fix: Using 'any' for aistudio to avoid conflicts with pre-defined global types in the environment
+declare global {
+  interface Window {
+    aistudio: any;
+  }
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -31,6 +37,16 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleGlobalUpdate = async () => {
     if (currentFunds.length === 0 || syncStatus) return;
+    
+    // Verificar si hay una key seleccionada antes de empezar
+    if (window.aistudio) {
+      const hasKey = await window.aistudio.hasSelectedApiKey();
+      if (!hasKey) {
+        logger.warn("Se requiere una API Key configurada para usar el motor de búsqueda.");
+        await window.aistudio.openSelectKey();
+      }
+    }
+
     logger.info(`Sincronización masiva desde configuración...`);
     
     const updatedFundsList = [...currentFunds];
@@ -53,20 +69,20 @@ export const Settings: React.FC<SettingsProps> = ({
                 };
                 logger.success(`[${i+1}/${currentFunds.length}] ${fund.isin} procesado en ${duration}s`);
             } else {
-                // Cambio crítico: Lanzamos error para detener el bucle inmediatamente
-                throw new Error(`Error al recuperar datos de ${fund.isin}. Sincronización abortada para proteger la integridad.`);
+                throw new Error(`Error al recuperar datos de ${fund.isin}. Sincronización abortada.`);
             }
         }
         
-        // Solo si llegamos aquí, actualizamos el estado global
-        if (onSyncComplete) {
-          onSyncComplete(updatedFundsList);
-        } else {
-          onFundsUpdate(updatedFundsList);
-        }
+        if (onSyncComplete) onSyncComplete(updatedFundsList);
+        else onFundsUpdate(updatedFundsList);
         logger.success("Sincronización finalizada correctamente.");
     } catch (error: any) {
-        logger.error(error.message || `Error crítico en la sincronización.`);
+        if (error.message?.includes("entity was not found")) {
+            logger.error("Error de permisos: La clave no soporta Google Search. Selecciona una clave de pago.");
+            if (window.aistudio) await window.aistudio.openSelectKey();
+        } else {
+            logger.error(error.message || `Error crítico en la sincronización.`);
+        }
     } finally {
         setSyncStatus(null);
     }
@@ -74,21 +90,44 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleDiagnoseApi = async () => {
     setApiStatus('checking');
-    logger.info("Diagnosticando conexión con Gemini Pro API...");
+    logger.info("Diagnosticando conexión con Gemini v3 y Google Search...");
+    
     try {
+      // Forzamos la creación de una instancia limpia con la key actual
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: 'Check status.',
-        config: { tools: [{googleSearch: {}}] }
+        contents: 'Check status of Google Search tool availability. Respond with "OK".',
+        config: { 
+          tools: [{ googleSearch: {} }] 
+        }
       });
+
       if (response.text) {
         setApiStatus('active');
-        logger.success("Gemini Pro API y Google Search operativos.");
+        logger.success("Gemini API y Google Search operativos.");
       }
-    } catch (e) {
+    } catch (e: any) {
       setApiStatus('error');
-      logger.error("Fallo en la validación de la API Key o herramientas.");
+      console.error(e);
+      
+      if (e.message?.includes("Requested entity was not found")) {
+        logger.error("Fallo: Herramientas no disponibles para esta API Key.");
+        // Sugerimos abrir el selector de key
+        if (window.aistudio) {
+          logger.info("Abriendo selector de API Key para resolver conflicto...");
+          await window.aistudio.openSelectKey();
+        }
+      } else {
+        logger.error("Fallo en la validación de la API Key o herramientas.");
+      }
+    }
+  };
+
+  const handleSelectKey = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      handleDiagnoseApi(); // Re-probar tras seleccionar
     }
   };
 
@@ -151,7 +190,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         </div>
                     </div>
                     <p className="text-[13px] text-gray-400 font-medium leading-relaxed mb-10">
-                      Actualización progresiva de todos los activos de la cartera.
+                      Actualización progresiva de todos los activos de la cartera mediante IA.
                     </p>
                 </div>
                 <button 
@@ -228,23 +267,39 @@ export const Settings: React.FC<SettingsProps> = ({
            />
 
            <ServiceBox 
-             icon={<CheckCircle size={20} className="text-neon" />}
+             icon={<Key size={20} className="text-neon" />}
              title="IA Processor"
-             desc="Conexión con Gemini v3."
+             desc="Conexión con Gemini v3 y Search."
              status={
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-3 w-full">
+                   <div className="flex items-center gap-2">
+                     <span className={`${apiStatus === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : apiStatus === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-surface/50 text-gray-400 border-gray-700'} px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border flex items-center gap-2`}>
+                        <Wifi size={10} /> {apiStatus === 'idle' ? 'Esperando' : apiStatus === 'checking' ? 'Validando...' : apiStatus === 'active' ? 'Operativo' : 'Error / Sin Key'}
+                     </span>
+                     <button 
+                      onClick={handleDiagnoseApi}
+                      disabled={apiStatus === 'checking'}
+                      className="text-gray-600 hover:text-white transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 group shrink-0"
+                     >
+                        <Zap size={10} className="group-hover:text-yellow-400" /> TEST
+                     </button>
+                   </div>
+                   
                    <button 
-                    disabled={apiStatus === 'checking'}
-                    className={`${apiStatus === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-surface/50 text-gray-400 border-gray-700'} px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border flex items-center gap-2`}
+                    onClick={handleSelectKey}
+                    className="flex items-center justify-center gap-2 bg-[#1a1f26] border border-gray-700 hover:border-neon/50 text-gray-300 hover:text-white text-[10px] font-black uppercase py-2 rounded-xl transition-all"
                    >
-                      <Wifi size={10} /> {apiStatus === 'idle' ? 'Esperando' : apiStatus === 'checking' ? 'Validando...' : apiStatus === 'active' ? 'Operativo' : 'Error API'}
+                     <Key size={12} className="text-neon" /> Configurar API Key (Pago)
                    </button>
-                   <button 
-                    onClick={handleDiagnoseApi}
-                    className="text-gray-600 hover:text-white transition-colors text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 group shrink-0"
+                   
+                   <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[9px] text-gray-500 hover:text-neon transition-colors font-bold uppercase tracking-widest"
                    >
-                      <Zap size={10} className="group-hover:text-yellow-400" /> TEST
-                   </button>
+                     Info Facturación <ExternalLink size={10} />
+                   </a>
                 </div>
              }
            />
@@ -270,6 +325,6 @@ const ServiceBox = ({ icon, title, desc, status }: any) => (
       </div>
       <p className="text-[11px] font-medium text-gray-500 mb-5 leading-tight">{desc}</p>
     </div>
-    <div className="flex items-center mt-auto">{status}</div>
+    <div className="flex items-center mt-auto w-full">{status}</div>
   </div>
 );
