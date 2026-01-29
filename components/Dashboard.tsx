@@ -170,8 +170,9 @@ export const Dashboard: React.FC<{ funds: Fund[] }> = ({ funds }) => {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} opacity={0.1} />
-              <XAxis dataKey="name" stroke="#4B5563" fontSize={10} md:fontSize={12} tickLine={false} axisLine={false} tick={{dy: 10}} />
-              <YAxis stroke="#4B5563" fontSize={10} md:fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+              {/* Fix: removed invalid md:fontSize prop and set a standard fontSize */}
+              <XAxis dataKey="name" stroke="#4B5563" fontSize={12} tickLine={false} axisLine={false} tick={{dy: 10}} />
+              <YAxis stroke="#4B5563" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
               <Tooltip contentStyle={{ backgroundColor: '#1a1f26', border: '1px solid #374151', borderRadius: '16px' }} />
               <Area type="monotone" dataKey="val" stroke="#00FFCC" strokeWidth={5} fill="url(#colorVal)" animationDuration={2000} />
             </AreaChart>
