@@ -1,0 +1,1 @@
+// Configuración desactivada para runtime de navegador puro

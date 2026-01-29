@@ -1,0 +1,1 @@
+// Consolidado en index.tsx

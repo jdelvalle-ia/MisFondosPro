@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MisFondos Pro | Gestión Patrimonial</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: 'var(--bg-background)',
+              card: 'var(--bg-card)',
+              surface: 'var(--bg-surface)',
+              neon: '#00FFCC',
+              violet: '#8A2BE2',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.6s ease-out forwards',
+              'slide-up': 'slideUp 0.5s ease-out forwards',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <link rel="stylesheet" href="index.css">
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      
+      :root {
+        --bg-background: #0B0E11;
+        --bg-card: #161B22;
+        --text-main: #e5e7eb;
+      }
+      
+      body {
+        background-color: var(--bg-background);
+        color: var(--text-main);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #00FFCC; }
+    </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@19.2.3",
+        "react/": "https://esm.sh/react@19.2.3/",
+        "react-dom": "https://esm.sh/react-dom@19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@19.2.3/",
+        "react-dom/client": "https://esm.sh/react-dom@19.2.3/client",
+        "react/jsx-runtime": "https://esm.sh/react@19.2.3/jsx-runtime",
+        "@google/genai": "https://esm.sh/@google/genai@1.36.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.562.0?deps=react@19.2.3",
+        "recharts": "https://esm.sh/recharts@3.6.0?deps=react@19.2.3,react-dom@19.2.3"
+      }
+    }
+    </script>
+    <script>
+      window.process = { env: { API_KEY: "" } };
+    </script>
+</head>
+<body class="custom-scrollbar overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+</body>
+</html>
