@@ -15,13 +15,6 @@ interface SettingsProps {
   onSyncComplete?: (funds: Fund[]) => void;
 }
 
-// Fix: Using 'any' for aistudio to avoid conflicts with pre-defined global types in the environment
-declare global {
-  interface Window {
-    aistudio: any;
-  }
-}
-
 export const Settings: React.FC<SettingsProps> = ({ 
   currentFunds, currentPortfolioName, lastSyncDate, onImportData, onFundsUpdate, onSyncComplete 
 }) => {
@@ -38,13 +31,10 @@ export const Settings: React.FC<SettingsProps> = ({
   const handleGlobalUpdate = async () => {
     if (currentFunds.length === 0 || syncStatus) return;
     
-    // Verificar si hay una key seleccionada antes de empezar
-    if (window.aistudio) {
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      if (!hasKey) {
-        logger.warn("Se requiere una API Key configurada para usar el motor de búsqueda.");
-        await window.aistudio.openSelectKey();
-      }
+    if (!process.env.API_KEY) {
+      logger.error("No se ha detectado ninguna API_KEY en el entorno.");
+      setApiStatus('error');
+      return;
     }
 
     logger.info(`Sincronización masiva desde configuración...`);
@@ -77,12 +67,7 @@ export const Settings: React.FC<SettingsProps> = ({
         else onFundsUpdate(updatedFundsList);
         logger.success("Sincronización finalizada correctamente.");
     } catch (error: any) {
-        if (error.message?.includes("entity was not found")) {
-            logger.error("Error de permisos: La clave no soporta Google Search. Selecciona una clave de pago.");
-            if (window.aistudio) await window.aistudio.openSelectKey();
-        } else {
-            logger.error(error.message || `Error crítico en la sincronización.`);
-        }
+        logger.error(error.message || `Error crítico en la sincronización.`);
     } finally {
         setSyncStatus(null);
     }
@@ -93,7 +78,10 @@ export const Settings: React.FC<SettingsProps> = ({
     logger.info("Diagnosticando conexión con Gemini v3 y Google Search...");
     
     try {
-      // Forzamos la creación de una instancia limpia con la key actual
+      if (!process.env.API_KEY) {
+        throw new Error("Variable API_KEY no encontrada en process.env");
+      }
+
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -110,24 +98,7 @@ export const Settings: React.FC<SettingsProps> = ({
     } catch (e: any) {
       setApiStatus('error');
       console.error(e);
-      
-      if (e.message?.includes("Requested entity was not found")) {
-        logger.error("Fallo: Herramientas no disponibles para esta API Key.");
-        // Sugerimos abrir el selector de key
-        if (window.aistudio) {
-          logger.info("Abriendo selector de API Key para resolver conflicto...");
-          await window.aistudio.openSelectKey();
-        }
-      } else {
-        logger.error("Fallo en la validación de la API Key o herramientas.");
-      }
-    }
-  };
-
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      handleDiagnoseApi(); // Re-probar tras seleccionar
+      logger.error("Fallo en la validación: Comprueba la variable de entorno en Netlify.");
     }
   };
 
@@ -269,12 +240,12 @@ export const Settings: React.FC<SettingsProps> = ({
            <ServiceBox 
              icon={<Key size={20} className="text-neon" />}
              title="IA Processor"
-             desc="Conexión con Gemini v3 y Search."
+             desc="Conexión gestionada por Netlify Env."
              status={
                 <div className="flex flex-col gap-3 w-full">
                    <div className="flex items-center gap-2">
                      <span className={`${apiStatus === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : apiStatus === 'error' ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-surface/50 text-gray-400 border-gray-700'} px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border flex items-center gap-2`}>
-                        <Wifi size={10} /> {apiStatus === 'idle' ? 'Esperando' : apiStatus === 'checking' ? 'Validando...' : apiStatus === 'active' ? 'Operativo' : 'Error / Sin Key'}
+                        <Wifi size={10} /> {apiStatus === 'idle' ? 'Esperando' : apiStatus === 'checking' ? 'Validando...' : apiStatus === 'active' ? 'Operativo' : 'Error de Config.'}
                      </span>
                      <button 
                       onClick={handleDiagnoseApi}
@@ -284,22 +255,7 @@ export const Settings: React.FC<SettingsProps> = ({
                         <Zap size={10} className="group-hover:text-yellow-400" /> TEST
                      </button>
                    </div>
-                   
-                   <button 
-                    onClick={handleSelectKey}
-                    className="flex items-center justify-center gap-2 bg-[#1a1f26] border border-gray-700 hover:border-neon/50 text-gray-300 hover:text-white text-[10px] font-black uppercase py-2 rounded-xl transition-all"
-                   >
-                     <Key size={12} className="text-neon" /> Configurar API Key (Pago)
-                   </button>
-                   
-                   <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[9px] text-gray-500 hover:text-neon transition-colors font-bold uppercase tracking-widest"
-                   >
-                     Info Facturación <ExternalLink size={10} />
-                   </a>
+                   <p className="text-[10px] text-gray-500 font-bold italic">La clave se obtiene de la variable de entorno API_KEY.</p>
                 </div>
              }
            />
