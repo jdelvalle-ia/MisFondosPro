@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // Priorizamos GEMINI_API_KEY (de tu Netlify) y la mapeamos a la variable que espera el código
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.API_KEY || '')
+      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
     },
     resolve: {
       alias: {
