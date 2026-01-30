@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Database, Upload, Download, CheckCircle, RefreshCw, Wifi, CloudLightning, Zap, FileCode, Clock, ExternalLink, Key } from 'lucide-react';
+import { Database, Upload, Download, RefreshCw, Wifi, CloudLightning, Zap, FileCode, Clock, Key } from 'lucide-react';
 import { Fund, HistoryPoint } from '../types.ts';
 import { storageService } from '../services/storageService.ts';
 import { geminiService } from '../services/geminiService.ts';
@@ -32,7 +32,7 @@ export const Settings: React.FC<SettingsProps> = ({
     if (currentFunds.length === 0 || syncStatus) return;
     
     if (!process.env.API_KEY) {
-      logger.error("No se ha detectado ninguna API_KEY en el entorno.");
+      logger.error("Error: Variable de entorno API_KEY no configurada.");
       setApiStatus('error');
       return;
     }
@@ -43,13 +43,9 @@ export const Settings: React.FC<SettingsProps> = ({
     try {
         for (let i = 0; i < updatedFundsList.length; i++) {
             const fund = updatedFundsList[i];
-            const startTime = performance.now();
             setSyncStatus({ current: i + 1, total: currentFunds.length, isin: fund.isin });
             
             const fullData = await geminiService.getFundFullData(fund);
-            const endTime = performance.now();
-            const duration = ((endTime - startTime) / 1000).toFixed(2);
-
             if (fullData) {
                 updatedFundsList[i] = { 
                   ...fund, 
@@ -57,9 +53,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   lastUpdated: fullData.current.date, 
                   history: fullData.history as HistoryPoint[]
                 };
-                logger.success(`[${i+1}/${currentFunds.length}] ${fund.isin} procesado en ${duration}s`);
-            } else {
-                throw new Error(`Error al recuperar datos de ${fund.isin}. Sincronización abortada.`);
             }
         }
         
@@ -75,30 +68,29 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleDiagnoseApi = async () => {
     setApiStatus('checking');
-    logger.info("Diagnosticando conexión con Gemini v3 y Google Search...");
+    logger.info("Validando API Key inyectada...");
     
     try {
-      if (!process.env.API_KEY) {
-        throw new Error("Variable API_KEY no encontrada en process.env");
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) {
+        throw new Error("Variable de entorno API_KEY no detectada.");
       }
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: 'Check status of Google Search tool availability. Respond with "OK".',
-        config: { 
-          tools: [{ googleSearch: {} }] 
-        }
+        contents: 'Confirm connection status. Respond with "Connection Active".',
+        config: { tools: [{ googleSearch: {} }] }
       });
 
       if (response.text) {
         setApiStatus('active');
-        logger.success("Gemini API y Google Search operativos.");
+        logger.success("Conexión con Gemini y Google Search validada.");
       }
     } catch (e: any) {
       setApiStatus('error');
       console.error(e);
-      logger.error("Fallo en la validación: Comprueba la variable de entorno en Netlify.");
+      logger.error(`Fallo en diagnóstico: ${e.message}`);
     }
   };
 
@@ -240,7 +232,7 @@ export const Settings: React.FC<SettingsProps> = ({
            <ServiceBox 
              icon={<Key size={20} className="text-neon" />}
              title="IA Processor"
-             desc="Conexión gestionada por Netlify Env."
+             desc="Gestión automática vía entorno."
              status={
                 <div className="flex flex-col gap-3 w-full">
                    <div className="flex items-center gap-2">
@@ -255,7 +247,6 @@ export const Settings: React.FC<SettingsProps> = ({
                         <Zap size={10} className="group-hover:text-yellow-400" /> TEST
                      </button>
                    </div>
-                   <p className="text-[10px] text-gray-500 font-bold italic">La clave se obtiene de la variable de entorno API_KEY.</p>
                 </div>
              }
            />
