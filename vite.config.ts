@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => {
     define: {
       // Priorizamos GEMINI_API_KEY (de tu Netlify) y la mapeamos a la variable que espera el código
       'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
-      logger.success(`API_KEY encontrada: "${process.env.API_KEY}"`);
     },
     resolve: {
       alias: {
