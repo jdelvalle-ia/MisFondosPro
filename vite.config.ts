@@ -8,13 +8,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   // Use path.resolve() instead of process.cwd() to resolve the "Property 'cwd' does not exist on type 'Process'" error
-  const env = loadEnv(mode, path.resolve(), '');
+  //const env = loadEnv(mode, path.resolve(), '');
+  const env = loadEnv(mode, process.cwd(), '');
   
   return {
     plugins: [react()],
     define: {
       // Priorizamos GEMINI_API_KEY (de tu Netlify) y la mapeamos a la variable que espera el código
-      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
+      //'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
+      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY)
     },
     resolve: {
       alias: {
