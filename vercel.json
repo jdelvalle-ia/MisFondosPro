@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html",
+      "headers": {
+        "x-api-key": "$(API_KEY)"
+      }
+    }
+  ]
+}
