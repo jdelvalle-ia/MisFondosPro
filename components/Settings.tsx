@@ -69,6 +69,8 @@ export const Settings: React.FC<SettingsProps> = ({
   const handleDiagnoseApi = async () => {
     setApiStatus('checking');
     logger.info("Validando API Key inyectada...");
+
+    logger.info("DEBUG - Valor real de la clave:", process.env.API_KEY);
     
     try {
       const apiKey = process.env.API_KEY;
