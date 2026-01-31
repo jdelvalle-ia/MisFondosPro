@@ -69,14 +69,10 @@ export const Settings: React.FC<SettingsProps> = ({
   const handleDiagnoseApi = async () => {
     setApiStatus('checking');
     logger.info("Validando API Key inyectada...");
-    // Julian
-    console.log("Objeto process completo:", window.process);
-    console.log("Objeto env completo:", window.process?.env);
-    console.log("Clave específica:", window.process?.env?.API_KEY);
-    logger.info(`DEBUG - Valor real de la clave: ${window.process?.env?.API_KEY}`);
+    logger.info(`DEBUG - Valor real de la clave: ${process.env.API_KEY}`);
     try {
-      //const apiKey = process.env.API_KEY;
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
+      const apiKey = process.env.API_KEY;
+      //const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
       if (!apiKey) {
         throw new Error("Variable de entorno API_KEY no detectada.");
       }
