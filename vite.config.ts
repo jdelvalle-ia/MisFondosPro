@@ -16,7 +16,9 @@ export default defineConfig(({ mode }) => {
     define: {
       // Priorizamos GEMINI_API_KEY (de tu Netlify) y la mapeamos a la variable que espera el código
       //'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.API_KEY || '')
-      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY)
+      'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
+        // Forzamos la variable global
+      'globalThis.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
       'window.__DEBUG_API_KEY__': JSON.stringify(env.VITE_GEMINI_API_KEY || "NO_DETECTADA_EN_BUILD")
     },
     resolve: {
