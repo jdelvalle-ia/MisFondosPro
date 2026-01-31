@@ -10,6 +10,8 @@ import { storageService } from './services/storageService.ts';
 import { INITIAL_FUNDS } from './services/mockData.ts';
 import { logger } from './services/loggerService.ts';
 
+console.log("Vite Env Check:", import.meta.env);
+
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<AppView>(AppView.DASHBOARD);
   const [funds, setFunds] = useState<Fund[]>([]);
