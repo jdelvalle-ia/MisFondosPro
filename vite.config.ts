@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   // Cargamos todas las variables de entorno
   const env = loadEnv(mode, process.cwd(), '');
-
+  
   return {
     plugins: [react()],
     define: {
@@ -17,6 +17,11 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    // Mantén el resto igual...
+    build: {
+      rollupOptions: {
+        // Si el error persiste, podemos decirle a Rollup que ignore 'process/browser'
+        external: [], 
+      },
+    },
   };
 });
