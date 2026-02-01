@@ -38,7 +38,6 @@ export const Settings: React.FC<SettingsProps> = ({
     //}
     // Usamos la misma lógica de búsqueda que funcionó en el test
     const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-    
     if (!apiKey) {
       logger.error("Error: Variable de entorno API_KEY no configurada.");
       setApiStatus('error');
