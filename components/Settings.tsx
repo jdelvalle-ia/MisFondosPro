@@ -71,9 +71,10 @@ export const Settings: React.FC<SettingsProps> = ({
     logger.info("Validando API Key inyectada...");
     logger.info(`DEBUG - Valor real de la clave: ${process.env.API_KEY}`);
     try {
-      const apiKey = process.env.API_KEY;
-      //const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
-      if (!apiKey) {
+      //const apiKey = process.env.API_KEY;
+      // Intentamos obtener la clave de varias fuentes posibles
+      const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+      if (!apiKey || apiKey === "") {
         throw new Error("Variable de entorno API_KEY no detectada.");
       }
 
