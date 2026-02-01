@@ -47,17 +47,22 @@ export const Portfolio: React.FC<PortfolioProps> = ({
 
   const handleGlobalUpdate = async () => {
     if (funds.length === 0 || syncStatus) return;
-    logger.info(`Iniciando actualización masiva de ${funds.length} activos...`);
+    logger.info(`CARTERA: Iniciando actualización masiva de ${funds.length} activos...`);
     
     const updatedFundsList = [...funds];
     try {
         for (let i = 0; i < updatedFundsList.length; i++) {
             const fund = updatedFundsList[i];
+            const startTime = performance.now();
             setSyncStatus({ current: i + 1, total: funds.length, isin: fund.isin });
             
             const fullData = await geminiService.getFundFullData(fund);
+            const endTime = performance.now();
+            const duration = ((endTime - startTime) / 1000).toFixed(2);
+
             if (!fullData) {
-              throw new Error(`CRÍTICO: Fallo al obtener datos de ${fund.isin}. Proceso abortado.`);
+              logger.error(`CARTERA: Fallo en ${fund.isin} tras ${duration}s. Continuando...`);
+              continue;
             }
 
             updatedFundsList[i] = { 
@@ -66,7 +71,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({
               lastUpdated: fullData.current.date,
               history: fullData.history as any
             };
-            logger.success(`[OK] ${fund.isin} actualizado.`);
+            logger.success(`CARTERA: [${i+1}/${funds.length}] ${fund.isin} actualizado en ${duration}s.`);
         }
         
         if (onSyncComplete) onSyncComplete(updatedFundsList);
@@ -81,18 +86,22 @@ export const Portfolio: React.FC<PortfolioProps> = ({
 
   const handleUpdateFundNAV = async (fund: Fund) => {
     setUpdatingIsin(fund.isin);
+    const startTime = performance.now();
     try {
       const fullData = await geminiService.getFundFullData(fund);
+      const endTime = performance.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+
       if (fullData) {
         onEditFund({ 
           ...fund, currentNAV: fullData.current.nav, 
           lastUpdated: fullData.current.date, 
           history: fullData.history as any
         });
-        logger.success(`NAV actualizado para ${fund.isin}`);
+        logger.success(`CARTERA: ${fund.isin} actualizado con éxito en ${duration}s.`);
       }
     } catch (e) {
-      logger.error(`Error actualizando ${fund.isin}`);
+      logger.error(`CARTERA: Error actualizando ${fund.isin}`);
     } finally {
       setUpdatingIsin(null);
     }
@@ -172,7 +181,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({
                       <div className="text-neon font-black text-[11px] mb-1 truncate max-w-[220px] uppercase tracking-tighter">{fund.name}</div>
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] font-bold text-gray-500 font-mono tracking-tight">{fund.isin}</span>
-                        {/* ICONOS SIEMPRE VISIBLES POR PETICIÓN */}
                         <div className="flex gap-2.5 ml-2">
                            <button onClick={() => handleOpenDetail(fund)} className="text-gray-500 hover:text-white transition-colors" title="Ver Detalle"><Eye size={12} /></button>
                            <button onClick={() => handleUpdateFundNAV(fund)} className="text-gray-500 hover:text-white transition-colors" title="Actualizar VL">
