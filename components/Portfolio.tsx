@@ -40,10 +40,43 @@ export const Portfolio: React.FC<PortfolioProps> = ({
   const [editingFund, setEditingFund] = useState<Fund | null>(null);
   const [formData, setFormData] = useState<Fund>(EMPTY_FUND);
   const [isEditingName, setIsEditingName] = useState(false);
+  
+  // Drag & Drop State
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const totalPortfolioValue = useMemo(() => {
     return funds.reduce((acc, fund) => acc + ((fund.shares || 0) * (fund.currentNAV || 0)), 0);
   }, [funds]);
+
+  // Drag & Drop Handlers
+  const handleDragStart = (index: number) => {
+    if (searchTerm) return; // Disable reordering while filtering to avoid index mismatches
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || searchTerm) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index || searchTerm) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const updatedFunds = [...funds];
+    const [movedItem] = updatedFunds.splice(draggedIndex, 1);
+    updatedFunds.splice(index, 0, movedItem);
+    
+    onFundsUpdate(updatedFunds);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    logger.info(`CARTERA: Posición de ${movedItem.isin} actualizada.`);
+  };
 
   const handleGlobalUpdate = async () => {
     if (funds.length === 0 || syncStatus) return;
@@ -173,15 +206,30 @@ export const Portfolio: React.FC<PortfolioProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/30">
-              {filteredFunds.map((fund) => {
+              {filteredFunds.map((fund, index) => {
                 const currentVal = fund.shares * fund.currentNAV;
                 const profit = currentVal - fund.investedAmount;
                 const profitPerc = fund.investedAmount > 0 ? (profit / fund.investedAmount) * 100 : 0;
                 const weight = totalPortfolioValue > 0 ? (currentVal / totalPortfolioValue) * 100 : 0;
+                
+                const isDragging = draggedIndex === index;
+                const isDragOver = dragOverIndex === index;
 
                 return (
-                  <tr key={fund.isin} className="group hover:bg-white/[0.02] transition-colors relative cursor-default">
-                    <td className="py-6 px-3"><GripVertical size={16} className="text-gray-700 mx-auto" /></td>
+                  <tr 
+                    key={fund.isin} 
+                    draggable={!searchTerm}
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={() => { setDraggedIndex(null); setDragOverIndex(null); }}
+                    className={`group hover:bg-white/[0.02] transition-all relative cursor-default ${isDragging ? 'opacity-20 bg-violet/10' : ''} ${isDragOver && !isDragging ? 'border-t-2 border-neon' : ''}`}
+                  >
+                    <td className="py-6 px-3">
+                        <div className={`cursor-grab active:cursor-grabbing p-1 transition-colors ${!searchTerm ? 'text-gray-700 group-hover:text-neon' : 'text-gray-800 opacity-20'}`}>
+                            <GripVertical size={16} className="mx-auto" />
+                        </div>
+                    </td>
                     <td className="py-6 px-2">
                       <div className="text-neon font-black text-[11px] mb-1 truncate max-w-[220px] uppercase tracking-tighter">{fund.name}</div>
                       <div className="flex items-center gap-2">
