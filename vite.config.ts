@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // Esta línea es "mágica": sustituye la expresión completa en todo el código fuente
       'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
+      'process.env.NODE_ENV': JSON.stringify(mode),
     },
     resolve: {
       alias: {
