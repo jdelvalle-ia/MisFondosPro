@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Fund, HistoryPoint } from '../types.ts';
 import { 
-  RefreshCw, Search, Plus, Trash2, Edit2, Eye, ArrowLeft, Loader2, 
-  X, Target, GripVertical, Save, Briefcase, Globe, Percent, Calendar,
-  Table as TableIcon, TrendingUp, Info, Activity, Layers
+  RefreshCw, Search, Trash2, Edit2, Eye, ArrowLeft, Loader2, 
+  X, GripVertical, Save, Briefcase, Calendar,
+  Table as TableIcon, TrendingUp, Activity
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService.ts';
 import { processHistoryData } from '../utils/fundUtils.ts';
@@ -147,9 +147,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({
             )}
           </div>
           <button onClick={() => { setEditingFund(null); setFormData(EMPTY_FUND); setIsModalOpen(true); }} className="bg-neon text-black font-black px-8 py-3 rounded-xl text-sm hover:bg-neon/90 transition-colors">Añadir Fondo</button>
-          <button onClick={handleGlobalUpdate} disabled={!!syncStatus} className="bg-[#2d1b4d] text-violet border border-violet/30 font-black px-8 py-3 rounded-xl text-sm disabled:opacity-50 flex items-center gap-2">
+          
+          <button 
+            onClick={handleGlobalUpdate} 
+            disabled={!!syncStatus} 
+            className="bg-[#2d1b4d] text-violet border border-violet/30 font-black px-8 py-3 rounded-xl text-sm disabled:opacity-50 flex items-center gap-2 transition-all min-w-[180px] justify-center"
+          >
             <RefreshCw size={18} className={syncStatus ? 'animate-spin' : ''} />
-            {syncStatus ? `${syncStatus.current}/${syncStatus.total}` : 'Actualizar Todo'}
+            {syncStatus ? `${syncStatus.current}/${syncStatus.total} ${syncStatus.isin}` : 'Actualizar Todo'}
           </button>
         </div>
       </div>
