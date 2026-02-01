@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Database, Upload, Download, RefreshCw, Wifi, CloudLightning, Zap, FileCode, Clock, Key } from 'lucide-react';
 import { Fund, HistoryPoint } from '../types.ts';
@@ -30,8 +31,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleGlobalUpdate = async () => {
     if (currentFunds.length === 0 || syncStatus) return;
-
-    // Usamos la misma lógica de búsqueda que funcionó en el test
+    
     const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       logger.error("Error: Variable de entorno API_KEY no configurada.");
@@ -39,15 +39,19 @@ export const Settings: React.FC<SettingsProps> = ({
       return;
     }
 
-    logger.info(`Sincronización masiva desde configuración...`);
+    logger.info(`Iniciando sincronización masiva de ${currentFunds.length} activos...`);
     
     const updatedFundsList = [...currentFunds];
     try {
         for (let i = 0; i < updatedFundsList.length; i++) {
             const fund = updatedFundsList[i];
+            const startTime = performance.now();
             setSyncStatus({ current: i + 1, total: currentFunds.length, isin: fund.isin });
             
             const fullData = await geminiService.getFundFullData(fund);
+            const endTime = performance.now();
+            const duration = ((endTime - startTime) / 1000).toFixed(2);
+
             if (fullData) {
                 updatedFundsList[i] = { 
                   ...fund, 
@@ -55,14 +59,17 @@ export const Settings: React.FC<SettingsProps> = ({
                   lastUpdated: fullData.current.date, 
                   history: fullData.history as HistoryPoint[]
                 };
+                logger.success(`[${i+1}/${currentFunds.length}] ${fund.isin} procesado con éxito en ${duration}s`);
+            } else {
+                logger.warn(`[${i+1}/${currentFunds.length}] ${fund.isin} falló o devolvió datos vacíos tras ${duration}s`);
             }
         }
         
         if (onSyncComplete) onSyncComplete(updatedFundsList);
         else onFundsUpdate(updatedFundsList);
-        logger.success("Sincronización finalizada correctamente.");
+        logger.success("Sincronización global finalizada correctamente.");
     } catch (error: any) {
-        logger.error(error.message || `Error crítico en la sincronización.`);
+        logger.error(error.message || `Error crítico en la sincronización masiva.`);
     } finally {
         setSyncStatus(null);
     }
@@ -70,8 +77,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleDiagnoseApi = async () => {
     setApiStatus('checking');
-    logger.info("Validando API Key inyectada...");
-    //logger.info(`DEBUG - Valor real de la clave: ${process.env.API_KEY}`);
+    logger.info("Validando API Key inyectada y herramientas de búsqueda...");
+    
     try {
       // Intentamos obtener la clave de varias fuentes posibles
       const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
@@ -88,12 +95,18 @@ export const Settings: React.FC<SettingsProps> = ({
 
       if (response.text) {
         setApiStatus('active');
-        logger.success("Conexión con Gemini y Google Search validada.");
+        logger.success("SISTEMA: Conexión con Gemini y Google Search validada con éxito.");
       }
     } catch (e: any) {
       setApiStatus('error');
-      console.error(e);
-      logger.error(`Fallo en diagnóstico: ${e.message}`);
+      console.error("Error de diagnóstico:", e);
+      if (e.message?.includes("API_KEY")) {
+         logger.error("CONFIG: Variable de entorno API_KEY no detectada por la aplicación.");
+      } else if (e.message?.includes("entity was not found")) {
+         logger.error("API: Tu clave no tiene permisos para usar Google Search. Usa una clave de pago.");
+      } else {
+         logger.error(`Fallo en diagnóstico: ${e.message}`);
+      }
     }
   };
 
@@ -102,7 +115,7 @@ export const Settings: React.FC<SettingsProps> = ({
     setTimeout(() => {
       storageService.exportToJSON(currentFunds, currentPortfolioName);
       setIsExporting(false);
-      logger.success(`Copia de seguridad descargada.`);
+      logger.success(`BACKUP: Copia de seguridad generada.`);
     }, 800);
   };
 
@@ -116,9 +129,9 @@ export const Settings: React.FC<SettingsProps> = ({
         portfolioName: data.portfolioName,
         lastSyncDate: data.lastModified
       });
-      logger.success(`Cartera "${data.portfolioName}" importada con éxito.`);
+      logger.success(`RESTORE: Cartera "${data.portfolioName}" restaurada desde JSON.`);
     } catch (error) {
-      logger.error(`Error: Archivo no compatible.`);
+      logger.error(`ERROR: El archivo seleccionado no es un respaldo compatible.`);
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
