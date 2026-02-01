@@ -16,7 +16,13 @@ const cleanAndParseJSON = (text: string | undefined) => {
 export const geminiService = {
   async getFundFullData(fund: Fund): Promise<{ current: { nav: number; date: string }, history: { date: string; nav: number }[] } | null> {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      //const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        logger.error("Error: API_KEY no disponible en geminiService");
+        return null;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       
       const today = new Date().toISOString().split('T')[0];
       const prompt = `INSTRUCCIÓN DE ALTA PRECISIÓN FINANCIERA: 
